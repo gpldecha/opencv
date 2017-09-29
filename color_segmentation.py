@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-img = cv2.imread('./images/image1.png')
+img = cv2.imread('./images/varun_1.png')
 
 
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -10,9 +10,9 @@ hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 # v [
 
 lower_range1 = np.array([0, 100, 100])
-upper_range1 = np.array([20, 255, 255])
+upper_range1 = np.array([10, 255, 255])
 
-lower_range2 = np.array([165, 100, 100])
+lower_range2 = np.array([170, 100, 100])
 upper_range2 = np.array([180, 255, 255])
 
 mask1 = cv2.inRange(hsv, lower_range1, upper_range1)
