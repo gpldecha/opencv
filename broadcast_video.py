@@ -15,6 +15,7 @@ class VideoCamera(object):
         # instead.
         print 'videofile: ', videofile
         self.video = cv2.VideoCapture(videofile)
+        self._frame_count = 0
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
         # self.video = cv2.VideoCapture('video.mp4')
@@ -24,6 +25,12 @@ class VideoCamera(object):
 
     def get_frame(self):
         success, image = self.video.read()
+        self._frame_count += 1
+        if self._frame_count == self.video.get(cv2.CAP_PROP_FRAME_COUNT):
+            self._frame_count=0
+            self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            print 'restart video'
+
         # We are using Motion JPEG, but OpenCV defaults to capture raw images,
         # so we must encode it into JPEG in order to correctly display the
         # video stream.
@@ -180,42 +187,43 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="publish a video to a url.")
     parser.add_argument("-v", required=True, help="Input video.")
+    parser.add_argument("-n", default=3)
     parser.add_argument("-url", default="localhost:8000", help="url to which the video will be streamed to.")
+
     args = parser.parse_args()
 
     video_file = args.v
+    num_stream = int(args.n)
     url = args.url
     host, port = url.split(':')
 
     video = VideoCamera(video_file)
 
-    httpVideoStreamer = HttpVideoStreamer(host=host, port=int(port))
-    httpVideoStreamer.start()
+    http_video_streamers = []
+    for i in range(num_stream):
+        http_video_streamers.append(HttpVideoStreamer(host=host, port=int(port)+i) )
+
+    for http_video_streamer in http_video_streamers:
+        http_video_streamer.start()
 
     killer = GracefulKiller()
     last_print = time.time()
     while True:
         frame = video.get_frame()
+        time.sleep(0.04)
         if frame is not None:
-            httpVideoStreamer.broadcast(frame)
+            for http_video_streamer in http_video_streamers:
+                http_video_streamer.broadcast(frame)
         else:
             if (time.time() - last_print) > 2.0:
                 last_print = time.time()
                 print 'frame is not valid'
 
-
-
         if killer.kill_now:
             break
 
-        # if (time.time() - last_print) > 2.0:
-        #    print '\n'
-        #    for thread in threading.enumerate():
-        #        print ' thread {}'.format(thread.getName())
-        #        last_print = time.time()
-
-    httpVideoStreamer.stop()
-
+    for http_video_streamer in http_video_streamers:
+        http_video_streamer.stop()
 
 
 
